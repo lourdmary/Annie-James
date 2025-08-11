@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - Annie James Zone{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="fas fa-credit-card"></i> Checkout</h2>
+    
+    <form method="POST" action="{{ url_for('place_order') }}">
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Shipping Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Shipping Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="house_number" class="form-label">House/Flat Number</label>
+                                <input type="text" class="form-control" name="house_number" required 
+                                       value="{{ current_user.house_number or '' }}" placeholder="e.g., 101, A-block">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="street_name" class="form-label">Street Name</label>
+                                <input type="text" class="form-control" name="street_name" required 
+                                       value="{{ current_user.street_name or '' }}" placeholder="e.g., MG Road, Brigade Road">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="address_line" class="form-label">Address Line (Area/Locality)</label>
+                            <textarea class="form-control" name="address_line" rows="2" required 
+                                      placeholder="Enter area, locality, landmark">{{ current_user.address_line or '' }}</textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="city" class="form-label">City</label>
+                                <select class="form-select" name="city" required>
+                                    <option value="">Select City</option>
+                                    <option value="Bangalore" {{ 'selected' if current_user.city == 'Bangalore' else '' }}>Bangalore</option>
+                                    <option value="Mumbai" {{ 'selected' if current_user.city == 'Mumbai' else '' }}>Mumbai</option>
+                                    <option value="Chennai" {{ 'selected' if current_user.city == 'Chennai' else '' }}>Chennai</option>
+                                    <option value="Delhi" {{ 'selected' if current_user.city == 'Delhi' else '' }}>Delhi</option>
+                                    <option value="Other" {{ 'selected' if current_user.city not in ['Bangalore', 'Mumbai', 'Chennai', 'Delhi'] else '' }}>Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="state" class="form-label">State</label>
+                                <input type="text" class="form-control" name="state" required 
+                                       value="{{ current_user.state or '' }}" placeholder="e.g., Karnataka">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="pincode" class="form-label">Pincode</label>
+                                <input type="text" class="form-control" name="pincode" required 
+                                       value="{{ current_user.pincode or '' }}" placeholder="Enter pincode">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Method -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Payment Method</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="payment_method" 
+                                   id="razorpay" value="Razorpay" checked>
+                            <label class="form-check-label" for="razorpay">
+                                <strong>Online Payment (Razorpay)</strong>
+                                <br>
+                                <small class="text-muted">Pay securely using Credit/Debit Card, UPI, Net Banking</small>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_method" 
+                                   id="cod" value="COD">
+                            <label class="form-check-label" for="cod">
+                                <strong>Cash on Delivery</strong>
+                                <br>
+                                <small class="text-muted">Available only in Bangalore, Mumbai, and Chennai</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Discount & Loyalty Points -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Discounts & Rewards</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if available_discounts %}
+                            <div class="mb-3">
+                                <label for="discount_code" class="form-label">Discount Code</label>
+                                <select class="form-select" name="discount_code">
+                                    <option value="">Select a discount code</option>
+                                    {% for discount in available_discounts %}
+                                        <option value="{{ discount.code }}">
+                                            {{ discount.code }} - {{ discount.description }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endif %}
+                        
+                        {% if current_user.loyalty_points > 0 %}
+                            <div class="mb-3">
+                                <label for="use_loyalty_points" class="form-label">
+                                    Use Loyalty Points (Available: {{ current_user.loyalty_points }})
+                                </label>
+                                <input type="number" class="form-control" name="use_loyalty_points" 
+                                       min="0" max="{{ min(current_user.loyalty_points, (subtotal * 0.1)|round|int) }}" 
+                                       placeholder="Points to use (max {{ (subtotal * 0.1)|round|int }})">
+                                <small class="form-text text-muted">
+                                    1 point = ₹1. You can use up to 10% of order value in points.
+                                </small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <!-- Order Summary -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Order Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for item in cart_items %}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-truncate me-2">{{ item.product.name }} ({{ item.size }}) x{{ item.quantity }}</span>
+                                <span>₹{{ (item.product.get_price() * item.quantity)|round(2) }}</span>
+                            </div>
+                        {% endfor %}
+                        
+                        <hr>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span>₹{{ subtotal }}</span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping:</span>
+                            <span class="text-success">Free</span>
+                        </div>
+                        
+                        {% if current_user.membership_tier != 'bronze' %}
+                            <div class="d-flex justify-content-between mb-2 text-success">
+                                <span>Member Discount:</span>
+                                <span>
+                                    {% if current_user.membership_tier == 'silver' %}5%{% endif %}
+                                    {% if current_user.membership_tier == 'gold' %}10%{% endif %}
+                                    {% if current_user.membership_tier == 'platinum' %}15%{% endif %}
+                                </span>
+                            </div>
+                        {% endif %}
+                        
+                        <hr>
+                        
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong>Total:</strong>
+                            <strong>₹{{ subtotal }}</strong>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-shopping-bag"></i> Place Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Disable COD for non-supported cities
+document.querySelector('select[name="city"]').addEventListener('change', function() {
+    const codRadio = document.getElementById('cod');
+    const upiRadio = document.getElementById('upi');
+    const supportedCities = ['Bangalore', 'Mumbai', 'Chennai'];
+    
+    if (supportedCities.includes(this.value)) {
+        codRadio.disabled = false;
+        codRadio.parentElement.classList.remove('text-muted');
+    } else {
+        codRadio.disabled = true;
+        codRadio.parentElement.classList.add('text-muted');
+        if (codRadio.checked) {
+            upiRadio.checked = true;
+        }
+    }
+});
+
+// Trigger change event on page load
+document.querySelector('select[name="city"]').dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

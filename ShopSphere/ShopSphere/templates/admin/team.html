@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Team Management - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-user-shield"></i> Team Management</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAdminModal">
+            <i class="fas fa-user-plus"></i> Add Admin
+        </button>
+    </div>
+    
+    <!-- Access Level Info -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5><i class="fas fa-info-circle"></i> Admin Access Levels</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Super Admin</h6>
+                            <ul class="mb-0">
+                                <li>Full system access</li>
+                                <li>Manage all admins</li>
+                                <li>View all analytics</li>
+                                <li>System configuration</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Limited Admin</h6>
+                            <ul class="mb-0">
+                                <li>Manage products and inventory</li>
+                                <li>View and update orders</li>
+                                <li>Basic customer management</li>
+                                <li>Limited analytics access</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Team Members Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Current Team Members</h5>
+        </div>
+        <div class="card-body">
+            {% if team_members %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Admin</th>
+                                <th>Contact</th>
+                                <th>Access Level</th>
+                                <th>Join Date</th>
+                                <th>Last Login</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in team_members %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-{{ 'danger' if member.admin_level == 'super_admin' else 'warning' }} rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-{{ 'crown' if member.admin_level == 'super_admin' else 'user-tie' }} text-white"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ member.full_name }}</div>
+                                            <small class="text-muted">@{{ member.username }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <small>{{ member.email }}</small>
+                                        <br>
+                                        <small>{{ member.phone or 'No phone' }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if member.admin_level == 'super_admin' else 'warning' }}">
+                                        {{ member.admin_level.replace('_', ' ').title() }}
+                                    </span>
+                                </td>
+                                <td>{{ member.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <span class="text-muted">N/A</span>
+                                    <br>
+                                    <small class="text-muted">Feature not implemented</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if member.is_verified else 'warning' }}">
+                                        {{ 'Active' if member.is_verified else 'Pending' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="viewAdminDetails({{ member.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if member.id != current_user.id and current_user.is_super_admin() %}
+                                            <button class="btn btn-outline-warning" onclick="editAdminLevel({{ member.id }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            {% if member.admin_level != 'super_admin' %}
+                                                <button class="btn btn-outline-danger" onclick="removeAdmin({{ member.id }})">
+                                                    <i class="fas fa-user-times"></i>
+                                                </button>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-user-shield fa-5x text-muted mb-4"></i>
+                    <h4 class="text-muted">No team members found</h4>
+                    <p class="text-muted">Add team members to help manage the store.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Admin Activity Log -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5><i class="fas fa-history"></i> Recent Admin Activity</h5>
+        </div>
+        <div class="card-body">
+            <div class="list-group list-group-flush">
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Super Admin</strong> updated order status for Order #123
+                        <br>
+                        <small class="text-muted">2 hours ago</small>
+                    </div>
+                    <span class="badge bg-success">Order Management</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Limited Admin</strong> added new product "Sample Product"
+                        <br>
+                        <small class="text-muted">4 hours ago</small>
+                    </div>
+                    <span class="badge bg-primary">Product Management</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Super Admin</strong> created new discount code "WELCOME10"
+                        <br>
+                        <small class="text-muted">1 day ago</small>
+                    </div>
+                    <span class="badge bg-warning">Discount Management</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Limited Admin</strong> updated inventory for multiple products
+                        <br>
+                        <small class="text-muted">2 days ago</small>
+                    </div>
+                    <span class="badge bg-info">Inventory Management</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Admin Modal -->
+<div class="modal fade" id="addAdminModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Admin</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/admin/add_admin">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        The new admin will receive an email with login credentials.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" name="full_name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" name="phone">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="admin_level" class="form-label">Access Level</label>
+                        <select class="form-select" name="admin_level" required>
+                            <option value="">Select Access Level</option>
+                            <option value="limited_admin">Limited Admin</option>
+                            {% if current_user.is_super_admin() %}
+                                <option value="super_admin">Super Admin</option>
+                            {% endif %}
+                        </select>
+                        <div class="form-text">
+                            Choose the appropriate access level for this admin.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="temp_password" class="form-label">Temporary Password</label>
+                        <input type="password" class="form-control" name="temp_password" required>
+                        <div class="form-text">
+                            The admin will be required to change this password on first login.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Admin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Admin Level Modal -->
+<div class="modal fade" id="editAdminModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Admin Access Level</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editAdminContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewAdminDetails(adminId) {
+    alert('Admin details for ID: ' + adminId + ' would be shown here');
+}
+
+function editAdminLevel(adminId) {
+    document.getElementById('editAdminContent').innerHTML = `
+        <form method="POST" action="/admin/edit_admin_level">
+            <input type="hidden" name="admin_id" value="${adminId}">
+            
+            <div class="mb-3">
+                <label class="form-label">New Access Level</label>
+                <select class="form-select" name="admin_level" required>
+                    <option value="limited_admin">Limited Admin</option>
+                    {% if current_user.is_super_admin() %}
+                        <option value="super_admin">Super Admin</option>
+                    {% endif %}
+                </select>
+            </div>
+            
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                Changing access level will take effect immediately.
+            </div>
+            
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-warning">Update Access Level</button>
+            </div>
+        </form>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('editAdminModal')).show();
+}
+
+function removeAdmin(adminId) {
+    if (confirm('Are you sure you want to remove this admin? This action cannot be undone.')) {
+        alert('Admin with ID: ' + adminId + ' would be removed');
+        // In a real application, this would send a request to remove the admin
+    }
+}
+</script>
+{% endblock %}

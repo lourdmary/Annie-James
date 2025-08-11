@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Discounts - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-percentage"></i> Manage Discounts</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDiscountModal">
+            <i class="fas fa-plus"></i> Create Discount
+        </button>
+    </div>
+    
+    <!-- Discounts Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if discounts %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Value</th>
+                                <th>Min Order</th>
+                                <th>Usage</th>
+                                <th>Valid Until</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for discount in discounts %}
+                            <tr>
+                                <td>
+                                    <strong class="text-primary">{{ discount.code }}</strong>
+                                </td>
+                                <td>{{ discount.description }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'info' if discount.discount_type == 'percentage' else 'success' }}">
+                                        {{ discount.discount_type.title() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if discount.discount_type == 'percentage' %}
+                                        {{ discount.discount_value }}%
+                                        {% if discount.max_discount %}
+                                            <br><small class="text-muted">Max: ₹{{ discount.max_discount }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        ₹{{ discount.discount_value }}
+                                    {% endif %}
+                                </td>
+                                <td>₹{{ discount.min_order_amount }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span>{{ discount.used_count }}</span>
+                                        {% if discount.usage_limit %}
+                                            <span class="text-muted">/{{ discount.usage_limit }}</span>
+                                            <div class="progress ms-2" style="width: 50px; height: 8px;">
+                                                <div class="progress-bar" 
+                                                     style="width: {{ (discount.used_count / discount.usage_limit * 100)|round }}%"></div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">/∞</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if discount.valid_until %}
+                                        {{ discount.valid_until.strftime('%Y-%m-%d') }}
+                                        {% if discount.valid_until < moment().datetime %}
+                                            <br><small class="text-danger">Expired</small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">No expiry</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if discount.is_active else 'secondary' }}">
+                                        {{ 'Active' if discount.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="editDiscount({{ discount.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-{{ 'secondary' if discount.is_active else 'success' }}" 
+                                                onclick="toggleDiscountStatus({{ discount.id }})">
+                                            <i class="fas fa-{{ 'pause' if discount.is_active else 'play' }}"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="deleteDiscount({{ discount.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-percentage fa-5x text-muted mb-4"></i>
+                    <h4 class="text-muted">No discounts created</h4>
+                    <p class="text-muted">Create your first discount to attract customers!</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDiscountModal">
+                        Create Discount
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Discount Statistics -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-ticket-alt fa-2x text-primary mb-2"></i>
+                    <h4 class="text-primary">{{ discounts|length }}</h4>
+                    <p class="mb-0">Total Discounts</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-play fa-2x text-success mb-2"></i>
+                    <h4 class="text-success">{{ discounts|selectattr('is_active')|list|length }}</h4>
+                    <p class="mb-0">Active Discounts</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                    <h4 class="text-info">{{ discounts|sum(attribute='used_count') }}</h4>
+                    <p class="mb-0">Total Usage</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-rupee-sign fa-2x text-warning mb-2"></i>
+                    <h4 class="text-warning">₹12,450</h4>
+                    <p class="mb-0">Total Savings Given</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Discount Modal -->
+<div class="modal fade" id="addDiscountModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Discount</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/admin/add_discount">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="code" class="form-label">Discount Code</label>
+                                <input type="text" class="form-control" name="code" required 
+                                       placeholder="e.g., SAVE20" style="text-transform: uppercase;">
+                                <div class="form-text">Use uppercase letters and numbers only</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="discount_type" class="form-label">Discount Type</label>
+                                <select class="form-select" name="discount_type" required onchange="toggleDiscountFields(this.value)">
+                                    <option value="">Select Type</option>
+                                    <option value="percentage">Percentage</option>
+                                    <option value="fixed">Fixed Amount</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="2" 
+                                  placeholder="Brief description of the discount"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="discount_value" class="form-label">Discount Value</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" id="discount-symbol">%</span>
+                                    <input type="number" step="0.01" class="form-control" name="discount_value" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="max-discount-field" style="display: none;">
+                            <div class="mb-3">
+                                <label for="max_discount" class="form-label">Maximum Discount (₹)</label>
+                                <input type="number" step="0.01" class="form-control" name="max_discount">
+                                <div class="form-text">Optional: Cap the maximum discount amount</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="min_order_amount" class="form-label">Minimum Order Amount (₹)</label>
+                                <input type="number" step="0.01" class="form-control" name="min_order_amount" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="usage_limit" class="form-label">Usage Limit</label>
+                                <input type="number" class="form-control" name="usage_limit" 
+                                       placeholder="Leave empty for unlimited">
+                                <div class="form-text">Total number of times this code can be used</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="valid_from" class="form-label">Valid From</label>
+                                <input type="datetime-local" class="form-control" name="valid_from">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="valid_until" class="form-label">Valid Until</label>
+                                <input type="datetime-local" class="form-control" name="valid_until">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="is_active" checked id="is_active">
+                        <label class="form-check-label" for="is_active">
+                            Activate immediately
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Discount</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Discount Modal -->
+<div class="modal fade" id="editDiscountModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Discount</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editDiscountContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleDiscountFields(type) {
+    const symbolElement = document.getElementById('discount-symbol');
+    const maxDiscountField = document.getElementById('max-discount-field');
+    
+    if (type === 'percentage') {
+        symbolElement.textContent = '%';
+        maxDiscountField.style.display = 'block';
+    } else if (type === 'fixed') {
+        symbolElement.textContent = '₹';
+        maxDiscountField.style.display = 'none';
+    }
+}
+
+function editDiscount(discountId) {
+    document.getElementById('editDiscountContent').innerHTML = `
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p>Loading discount details...</p>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('editDiscountModal')).show();
+    
+    // Simulate loading discount data
+    setTimeout(() => {
+        document.getElementById('editDiscountContent').innerHTML = `
+            <form method="POST" action="/admin/edit_discount">
+                <input type="hidden" name="discount_id" value="${discountId}">
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Editing discount for ID: ${discountId}. Form would be pre-populated with existing data.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Discount Code</label>
+                            <input type="text" class="form-control" name="code" value="SAMPLE20" readonly>
+                            <div class="form-text">Code cannot be changed after creation</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="is_active">
+                                <option value="1">Active</option>
+                                <option value="0">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Discount</button>
+                </div>
+            </form>
+        `;
+    }, 1000);
+}
+
+function toggleDiscountStatus(discountId) {
+    if (confirm('Are you sure you want to toggle the status of this discount?')) {
+        alert('Discount status would be toggled for ID: ' + discountId);
+        // In a real application, this would send a request to toggle status
+    }
+}
+
+function deleteDiscount(discountId) {
+    if (confirm('Are you sure you want to delete this discount? This action cannot be undone.')) {
+        alert('Discount would be deleted for ID: ' + discountId);
+        // In a real application, this would send a request to delete the discount
+    }
+}
+
+// Auto-generate discount code
+document.querySelector('input[name="code"]').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+</script>
+{% endblock %}

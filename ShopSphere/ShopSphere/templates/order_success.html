@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Order Successful - Fashion Store{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-check-circle fa-5x text-success mb-4"></i>
+                    <h2 class="text-success mb-3">Order Placed Successfully!</h2>
+                    <h4 class="mb-3">Order #{{ order.id }}</h4>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <strong>Order Total:</strong> ₹{{ order.total_amount }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Payment Method:</strong> {{ order.payment_method }}
+                        </div>
+                    </div>
+                    
+                    {% if order.payment_method == 'UPI' %}
+                        <div class="alert alert-info">
+                            <h5><i class="fas fa-mobile-alt"></i> Complete Your Payment</h5>
+                            <p class="mb-2">Please complete your UPI payment using the following details:</p>
+                            <p class="mb-0"><strong>UPI ID:</strong> charlessharaann-2@okicici</p>
+                            <p class="mb-0"><strong>Amount:</strong> ₹{{ order.total_amount }}</p>
+                            <p class="mb-0"><strong>Reference:</strong> Order #{{ order.id }}</p>
+                        </div>
+                    {% elif order.payment_method == 'COD' %}
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-truck"></i> Cash on Delivery</h5>
+                            <p class="mb-0">Your order will be delivered to {{ order.shipping_city }}. Please keep ₹{{ order.total_amount }} ready for the delivery person.</p>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <h5>What's Next?</h5>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-envelope text-primary"></i> You'll receive an order confirmation email shortly</li>
+                            <li><i class="fas fa-box text-primary"></i> Your order will be processed within 1-2 business days</li>
+                            <li><i class="fas fa-shipping-fast text-primary"></i> Delivery typically takes 3-5 business days</li>
+                        </ul>
+                    </div>
+                    
+                    {% if order.loyalty_points_used > 0 %}
+                        <div class="alert alert-info">
+                            <p class="mb-0"><strong>Loyalty Points Used:</strong> {{ order.loyalty_points_used }} points</p>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex gap-3 justify-content-center">
+                        <a href="{{ url_for('profile') }}" class="btn btn-primary">
+                            <i class="fas fa-user"></i> View Order History
+                        </a>
+                        <a href="{{ url_for('products') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-shopping-bag"></i> Continue Shopping
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

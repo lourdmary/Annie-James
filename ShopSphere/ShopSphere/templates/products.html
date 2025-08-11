@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Products - Fashion Store{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <form method="GET" class="d-flex">
+                <input type="text" class="form-control me-2" name="search" 
+                       placeholder="Search products..." value="{{ search }}">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" onchange="filterByCategory(this.value)">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {{ 'selected' if selected_category == category.id else '' }}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="row">
+        {% if products %}
+            {% for product in products %}
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 250px;">
+                        <i class="fas fa-image fa-3x text-muted"></i>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title">{{ product.name }}</h6>
+                        <p class="card-text text-muted small">{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                {% if product.discounted_price %}
+                                    <span class="text-danger fw-bold fs-5">₹{{ product.discounted_price }}</span>
+                                    <small class="text-muted text-decoration-line-through">₹{{ product.price }}</small>
+                                    <br>
+                                    <small class="badge bg-success">{{ product.get_discount_percentage() }}% OFF</small>
+                                {% else %}
+                                    <span class="fw-bold fs-5">₹{{ product.price }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-heart text-danger"></i> {{ product.get_likes_count() }}
+                                </small>
+                                <small class="text-muted">
+                                    Stock: {{ product.get_total_stock() }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('product_detail', product_id=product.id) }}" 
+                               class="btn btn-primary btn-sm">
+                                View Details
+                            </a>
+                            {% if current_user.is_authenticated %}
+                                <a href="{{ url_for('add_to_wishlist', product_id=product.id) }}" 
+                                   class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-heart"></i> Add to Wishlist
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No products found</h4>
+                    <p class="text-muted">Try adjusting your search or filter criteria</p>
+                    <a href="{{ url_for('products') }}" class="btn btn-primary">Show All Products</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterByCategory(categoryId) {
+    const url = new URL(window.location);
+    if (categoryId) {
+        url.searchParams.set('category', categoryId);
+    } else {
+        url.searchParams.delete('category');
+    }
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}

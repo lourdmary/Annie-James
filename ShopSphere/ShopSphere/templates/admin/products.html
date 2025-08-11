@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Products - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-box"></i> Manage Products</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+            <i class="fas fa-plus"></i> Add Product
+        </button>
+    </div>
+    
+    <!-- Products Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Discounted Price</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>{{ product.id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light rounded me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-image text-muted"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">{{ product.name }}</div>
+                                        <small class="text-muted">{{ product.description[:50] }}{% if product.description|length > 50 %}...{% endif %}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ product.category.name }}</td>
+                            <td>₹{{ product.price }}</td>
+                            <td>
+                                {% if product.discounted_price %}
+                                    ₹{{ product.discounted_price }}
+                                    <small class="badge bg-success">{{ product.get_discount_percentage() }}% OFF</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if product.get_total_stock() > 10 else 'warning' if product.get_total_stock() > 0 else 'danger' }}">
+                                    {{ product.get_total_stock() }} units
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if product.is_active else 'secondary' }}">
+                                    {{ 'Active' if product.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="editProduct({{ product.id }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="manageInventory({{ product.id }})">
+                                        <i class="fas fa-warehouse"></i>
+                                    </button>
+                                    <button class="btn btn-outline-{{ 'secondary' if product.is_active else 'success' }}" 
+                                            onclick="toggleProductStatus({{ product.id }})">
+                                        <i class="fas fa-{{ 'eye-slash' if product.is_active else 'eye' }}"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/admin/add_product">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Product Name</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category_id" class="form-label">Category</label>
+                                <select class="form-select" name="category_id" required>
+                                    <option value="">Select Category</option>
+                                    {% for category in categories %}
+                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="price" class="form-label">Price (₹)</label>
+                                <input type="number" step="0.01" class="form-control" name="price" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="discounted_price" class="form-label">Discounted Price (₹)</label>
+                                <input type="number" step="0.01" class="form-control" name="discounted_price">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Initial Stock (per size)</label>
+                        <div class="row">
+                            <div class="col-3">
+                                <label for="stock_s" class="form-label">S</label>
+                                <input type="number" class="form-control" name="stock_s" value="0" min="0">
+                            </div>
+                            <div class="col-3">
+                                <label for="stock_m" class="form-label">M</label>
+                                <input type="number" class="form-control" name="stock_m" value="0" min="0">
+                            </div>
+                            <div class="col-3">
+                                <label for="stock_l" class="form-label">L</label>
+                                <input type="number" class="form-control" name="stock_l" value="0" min="0">
+                            </div>
+                            <div class="col-3">
+                                <label for="stock_xl" class="form-label">XL</label>
+                                <input type="number" class="form-control" name="stock_xl" value="0" min="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Management Modal -->
+<div class="modal fade" id="inventoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Inventory</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="inventoryContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editProduct(productId) {
+    alert('Edit product functionality would be implemented here for product ID: ' + productId);
+}
+
+function manageInventory(productId) {
+    // This would typically load inventory data via AJAX
+    document.getElementById('inventoryContent').innerHTML = `
+        <p>Inventory management for Product ID: ${productId}</p>
+        <div class="row">
+            <div class="col-6">
+                <label class="form-label">Size S</label>
+                <input type="number" class="form-control" value="0" min="0">
+            </div>
+            <div class="col-6">
+                <label class="form-label">Size M</label>
+                <input type="number" class="form-control" value="0" min="0">
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-6">
+                <label class="form-label">Size L</label>
+                <input type="number" class="form-control" value="0" min="0">
+            </div>
+            <div class="col-6">
+                <label class="form-label">Size XL</label>
+                <input type="number" class="form-control" value="0" min="0">
+            </div>
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-primary">Update Inventory</button>
+        </div>
+    `;
+    new bootstrap.Modal(document.getElementById('inventoryModal')).show();
+}
+
+function toggleProductStatus(productId) {
+    if (confirm('Are you sure you want to toggle the product status?')) {
+        // This would send a request to toggle product active status
+        alert('Product status would be toggled for product ID: ' + productId);
+    }
+}
+</script>
+{% endblock %}

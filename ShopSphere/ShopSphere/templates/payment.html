@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Payment - Annie James Zone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="text-center">Complete Payment</h4>
+                </div>
+                <div class="card-body text-center">
+                    <h5>Total Amount: ₹{{ "%.2f"|format(total_amount) }}</h5>
+                    <p class="text-muted">Secure payment powered by Razorpay</p>
+                    
+                    <button id="razorpay-button" class="btn btn-primary btn-lg">
+                        <i class="fas fa-credit-card me-2"></i>Pay Now
+                    </button>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-lock me-1"></i>
+                            Your payment is secured with 256-bit SSL encryption
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+document.getElementById('razorpay-button').onclick = function(e) {
+    e.preventDefault();
+    
+    var options = {
+        "key": "{{ razorpay_key_id }}",
+        "amount": {{ order.amount }},
+        "currency": "{{ order.currency }}",
+        "name": "Annie James Zone",
+        "description": "Fashion Products Purchase",
+        "order_id": "{{ order.id }}",
+        "handler": function (response) {
+            // Create a form to submit payment details
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("payment_success") }}';
+            
+            var fields = {
+                'razorpay_payment_id': response.razorpay_payment_id,
+                'razorpay_order_id': response.razorpay_order_id,
+                'razorpay_signature': response.razorpay_signature
+            };
+            
+            for (var key in fields) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+        },
+        "prefill": {
+            "name": "{{ current_user.full_name }}",
+            "email": "{{ current_user.email }}",
+            "contact": "{{ current_user.phone or '' }}"
+        },
+        "theme": {
+            "color": "#3399cc"
+        }
+    };
+    
+    var rzp = new Razorpay(options);
+    rzp.open();
+};
+</script>
+{% endblock %}

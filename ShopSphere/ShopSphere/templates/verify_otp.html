@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Verify OTP - Fashion Store{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card mt-5">
+                <div class="card-header">
+                    <h4 class="text-center">Verify OTP</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted text-center mb-4">
+                        We've sent a 6-digit OTP to your email address. Please enter it below.
+                    </p>
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="otp" class="form-label">Enter OTP</label>
+                            <input type="text" class="form-control text-center" id="otp" name="otp" 
+                                   maxlength="6" pattern="[0-9]{6}" required 
+                                   style="letter-spacing: 0.5em; font-size: 1.2em;">
+                            <small class="form-text text-muted">OTP expires in 10 minutes</small>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Verify OTP</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <small>
+                        Didn't receive OTP? <a href="#" onclick="history.back()">Try again</a>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-focus and format OTP input
+document.getElementById('otp').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length <= 6) {
+        e.target.value = value;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Orders - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-shopping-cart"></i> Manage Orders</h2>
+        <div class="d-flex gap-2">
+            <select class="form-select" onchange="filterOrders(this.value)">
+                <option value="">All Orders</option>
+                <option value="placed">Placed</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+            <input type="date" class="form-control" onchange="filterByDate(this.value)">
+        </div>
+    </div>
+    
+    <!-- Orders Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if orders %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Items</th>
+                                <th>Amount</th>
+                                <th>Payment</th>
+                                <th>Shipping City</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>
+                                    <strong>#{{ order.id }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ order.created_at.strftime('%H:%M') }}</small>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>{{ order.customer.full_name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ order.customer.email }}</small>
+                                        <br>
+                                        <small class="text-muted">{{ order.customer.phone }}</small>
+                                    </div>
+                                </td>
+                                <td>{{ order.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <span class="badge bg-info">{{ order.order_items|length }} items</span>
+                                </td>
+                                <td>
+                                    <strong>₹{{ order.total_amount }}</strong>
+                                    {% if order.discount_amount > 0 %}
+                                        <br>
+                                        <small class="text-success">-₹{{ order.discount_amount }} discount</small>
+                                    {% endif %}
+                                    {% if order.loyalty_points_used > 0 %}
+                                        <br>
+                                        <small class="text-info">{{ order.loyalty_points_used }} points used</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if order.payment_method == 'UPI' else 'warning' }}">
+                                        {{ order.payment_method }}
+                                    </span>
+                                    <br>
+                                    <small class="badge bg-{{ 'success' if order.payment_status == 'completed' else 'warning' if order.payment_status == 'pending' else 'danger' }}">
+                                        {{ order.payment_status.title() }}
+                                    </small>
+                                </td>
+                                <td>{{ order.shipping_city }}</td>
+                                <td>
+                                    <select class="form-select form-select-sm" onchange="updateOrderStatus({{ order.id }}, this.value)">
+                                        <option value="placed" {{ 'selected' if order.order_status == 'placed' else '' }}>Placed</option>
+                                        <option value="confirmed" {{ 'selected' if order.order_status == 'confirmed' else '' }}>Confirmed</option>
+                                        <option value="shipped" {{ 'selected' if order.order_status == 'shipped' else '' }}>Shipped</option>
+                                        <option value="delivered" {{ 'selected' if order.order_status == 'delivered' else '' }}>Delivered</option>
+                                        <option value="cancelled" {{ 'selected' if order.order_status == 'cancelled' else '' }}>Cancelled</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="viewOrderDetails({{ order.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="printInvoice({{ order.id }})">
+                                            <i class="fas fa-print"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-shopping-cart fa-5x text-muted mb-4"></i>
+                    <h4 class="text-muted">No orders found</h4>
+                    <p class="text-muted">Orders will appear here once customers start placing orders.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Order Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="orderDetailsContent">
+                <!-- Order details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="printInvoice()">Print Invoice</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateOrderStatus(orderId, newStatus) {
+    if (!confirm('Are you sure you want to update this order status?')) {
+        // Reset the select to original value
+        location.reload();
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('order_id', orderId);
+    formData.append('status', newStatus);
+    
+    fetch('/admin/update_order_status', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Failed to update order status: ' + (data.message || 'Unknown error'));
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the order status');
+        location.reload();
+    });
+}
+
+function viewOrderDetails(orderId) {
+    // In a real application, this would fetch order details via AJAX
+    document.getElementById('orderDetailsContent').innerHTML = `
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p>Loading order details for Order #${orderId}...</p>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('orderDetailsModal')).show();
+    
+    // Simulate loading order details
+    setTimeout(() => {
+        document.getElementById('orderDetailsContent').innerHTML = `
+            <h6>Order #${orderId}</h6>
+            <p>Detailed order information would be displayed here including:</p>
+            <ul>
+                <li>Customer information</li>
+                <li>Shipping address</li>
+                <li>Order items with sizes and quantities</li>
+                <li>Payment details</li>
+                <li>Order timeline</li>
+            </ul>
+        `;
+    }, 1000);
+}
+
+function printInvoice(orderId) {
+    alert('Invoice printing functionality would be implemented here for Order #' + orderId);
+}
+
+function filterOrders(status) {
+    const url = new URL(window.location);
+    if (status) {
+        url.searchParams.set('status', status);
+    } else {
+        url.searchParams.delete('status');
+    }
+    window.location.href = url.toString();
+}
+
+function filterByDate(date) {
+    const url = new URL(window.location);
+    if (date) {
+        url.searchParams.set('date', date);
+    } else {
+        url.searchParams.delete('date');
+    }
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}

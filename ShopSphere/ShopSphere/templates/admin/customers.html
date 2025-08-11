@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Customers - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-users"></i> Manage Customers</h2>
+        <div class="d-flex gap-2">
+            <input type="text" class="form-control" placeholder="Search customers..." id="searchInput">
+            <select class="form-select" onchange="filterByMembership(this.value)">
+                <option value="">All Memberships</option>
+                <option value="bronze">Bronze</option>
+                <option value="silver">Silver</option>
+                <option value="gold">Gold</option>
+                <option value="platinum">Platinum</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Customers Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if customers %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Contact</th>
+                                <th>Membership</th>
+                                <th>Loyalty Points</th>
+                                <th>Total Orders</th>
+                                <th>Total Spent</th>
+                                <th>Join Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in customers %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ customer.full_name }}</div>
+                                            <small class="text-muted">@{{ customer.username }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <small>{{ customer.email }}</small>
+                                        <br>
+                                        <small>{{ customer.phone or 'No phone' }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'warning' if customer.membership_tier == 'gold' else 'secondary' if customer.membership_tier == 'silver' else 'primary' if customer.membership_tier == 'platinum' else 'light text-dark' }}">
+                                        {{ customer.membership_tier.title() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">{{ customer.loyalty_points }}</span>
+                                </td>
+                                <td>
+                                    <strong>{{ customer.orders|length }}</strong>
+                                </td>
+                                <td>
+                                    <strong>₹{{ customer.orders|sum(attribute='total_amount')|round(2) }}</strong>
+                                </td>
+                                <td>{{ customer.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if customer.is_verified else 'warning' }}">
+                                        {{ 'Verified' if customer.is_verified else 'Unverified' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="viewCustomerDetails({{ customer.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="viewOrderHistory({{ customer.id }})">
+                                            <i class="fas fa-shopping-bag"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="manageMembership({{ customer.id }})">
+                                            <i class="fas fa-crown"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-users fa-5x text-muted mb-4"></i>
+                    <h4 class="text-muted">No customers found</h4>
+                    <p class="text-muted">Customer information will appear here once users start registering.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Customer Details Modal -->
+<div class="modal fade" id="customerDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Customer Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="customerDetailsContent">
+                <!-- Customer details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Membership Management Modal -->
+<div class="modal fade" id="membershipModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Membership</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="membershipContent">
+                <!-- Membership content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewCustomerDetails(customerId) {
+    document.getElementById('customerDetailsContent').innerHTML = `
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p>Loading customer details...</p>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('customerDetailsModal')).show();
+    
+    // Simulate loading customer details
+    setTimeout(() => {
+        document.getElementById('customerDetailsContent').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Personal Information</h6>
+                    <p><strong>Customer ID:</strong> ${customerId}</p>
+                    <p><strong>Full Name:</strong> [Customer Name]</p>
+                    <p><strong>Email:</strong> [Customer Email]</p>
+                    <p><strong>Phone:</strong> [Customer Phone]</p>
+                    <p><strong>Address:</strong> [Customer Address]</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Account Information</h6>
+                    <p><strong>Member Since:</strong> [Join Date]</p>
+                    <p><strong>Membership Tier:</strong> [Tier]</p>
+                    <p><strong>Loyalty Points:</strong> [Points]</p>
+                    <p><strong>Status:</strong> [Status]</p>
+                </div>
+            </div>
+            <hr>
+            <h6>Order Summary</h6>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-primary">[Total Orders]</h4>
+                        <small>Total Orders</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-success">[Total Spent]</h4>
+                        <small>Total Spent</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-info">[Avg Order]</h4>
+                        <small>Average Order</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-warning">[Last Order]</h4>
+                        <small>Days Since Last Order</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    }, 1000);
+}
+
+function viewOrderHistory(customerId) {
+    alert('Order history for customer ID: ' + customerId + ' would be shown here');
+}
+
+function manageMembership(customerId) {
+    document.getElementById('membershipContent').innerHTML = `
+        <p>Manage membership for Customer ID: ${customerId}</p>
+        <div class="mb-3">
+            <label class="form-label">Membership Tier</label>
+            <select class="form-select">
+                <option value="bronze">Bronze</option>
+                <option value="silver">Silver</option>
+                <option value="gold">Gold</option>
+                <option value="platinum">Platinum</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Adjust Loyalty Points</label>
+            <div class="input-group">
+                <input type="number" class="form-control" placeholder="Points to add/remove">
+                <button class="btn btn-outline-primary">Update</button>
+            </div>
+        </div>
+        <div class="d-grid">
+            <button class="btn btn-primary">Save Changes</button>
+        </div>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('membershipModal')).show();
+}
+
+function filterByMembership(tier) {
+    const url = new URL(window.location);
+    if (tier) {
+        url.searchParams.set('membership', tier);
+    } else {
+        url.searchParams.delete('membership');
+    }
+    window.location.href = url.toString();
+}
+
+// Search functionality
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Fashion Store{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Product Image -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body bg-light d-flex align-items-center justify-content-center" style="height: 400px;">
+                    <i class="fas fa-image fa-5x text-muted"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Product Details -->
+        <div class="col-md-6">
+            <h2>{{ product.name }}</h2>
+            <p class="text-muted mb-3">{{ product.description }}</p>
+            
+            <!-- Price -->
+            <div class="mb-3">
+                {% if product.discounted_price %}
+                    <span class="h3 text-danger fw-bold">₹{{ product.discounted_price }}</span>
+                    <span class="h5 text-muted text-decoration-line-through ms-2">₹{{ product.price }}</span>
+                    <span class="badge bg-success ms-2">{{ product.get_discount_percentage() }}% OFF</span>
+                {% else %}
+                    <span class="h3 fw-bold">₹{{ product.price }}</span>
+                {% endif %}
+            </div>
+            
+            <!-- Category -->
+            <p><strong>Category:</strong> {{ product.category.name }}</p>
+            
+            <!-- Stock Info -->
+            <p><strong>Available Stock:</strong> {{ product.get_total_stock() }} units</p>
+            
+            <!-- Likes -->
+            <div class="mb-3">
+                {% if current_user.is_authenticated %}
+                    <button class="btn btn-outline-danger btn-sm" id="likeBtn" onclick="toggleLike({{ product.id }})">
+                        <i class="fas fa-heart" id="heartIcon"></i>
+                        <span id="likesCount">{{ product.get_likes_count() }}</span> likes
+                    </button>
+                {% else %}
+                    <span class="text-muted">
+                        <i class="fas fa-heart text-danger"></i> {{ product.get_likes_count() }} likes
+                    </span>
+                {% endif %}
+            </div>
+            
+            {% if current_user.is_authenticated and sizes %}
+                <!-- Add to Cart Form -->
+                <form method="POST" action="{{ url_for('add_to_cart') }}" class="mb-3">
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="size" class="form-label">Size</label>
+                            <select class="form-select" name="size" required>
+                                <option value="">Select Size</option>
+                                {% for size in sizes %}
+                                    <option value="{{ size }}">{{ size }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="quantity" class="form-label">Quantity</label>
+                            <input type="number" class="form-control" name="quantity" min="1" max="5" value="1" required>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-shopping-cart"></i> Add to Cart
+                        </button>
+                        <a href="{{ url_for('add_to_wishlist', product_id=product.id) }}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-heart"></i> Add to Wishlist
+                        </a>
+                    </div>
+                </form>
+            {% elif not current_user.is_authenticated %}
+                <div class="alert alert-info">
+                    <a href="{{ url_for('login') }}">Login</a> to add this item to your cart.
+                </div>
+            {% else %}
+                <div class="alert alert-warning">
+                    This product is currently out of stock.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Comments Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4>Customer Reviews</h4>
+            
+            {% if current_user.is_authenticated %}
+                <!-- Add Comment Form -->
+                <form method="POST" action="{{ url_for('add_comment') }}" class="mb-4">
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    
+                    <div class="mb-3">
+                        <label for="rating" class="form-label">Rating</label>
+                        <select class="form-select" name="rating" required>
+                            <option value="">Select Rating</option>
+                            <option value="5">⭐⭐⭐⭐⭐ (5 stars)</option>
+                            <option value="4">⭐⭐⭐⭐ (4 stars)</option>
+                            <option value="3">⭐⭐⭐ (3 stars)</option>
+                            <option value="2">⭐⭐ (2 stars)</option>
+                            <option value="1">⭐ (1 star)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Your Review</label>
+                        <textarea class="form-control" name="content" rows="3" 
+                                  placeholder="Share your thoughts about this product..." required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                </form>
+            {% endif %}
+            
+            <!-- Comments List -->
+            {% if comments %}
+                {% for comment in comments %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="card-title">{{ comment.user.full_name }}</h6>
+                                <small class="text-muted">{{ comment.created_at.strftime('%Y-%m-%d') }}</small>
+                            </div>
+                            {% if comment.rating %}
+                                <div class="mb-2">
+                                    {% for i in range(comment.rating) %}
+                                        <span class="text-warning">⭐</span>
+                                    {% endfor %}
+                                    <span class="text-muted">({{ comment.rating }}/5)</span>
+                                </div>
+                            {% endif %}
+                            <p class="card-text">{{ comment.content }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No reviews yet</h5>
+                    <p class="text-muted">Be the first to review this product!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Set initial like state
+document.addEventListener('DOMContentLoaded', function() {
+    const likeBtn = document.getElementById('likeBtn');
+    const heartIcon = document.getElementById('heartIcon');
+    
+    {% if user_liked %}
+        if (likeBtn) {
+            likeBtn.classList.remove('btn-outline-danger');
+            likeBtn.classList.add('btn-danger');
+        }
+    {% endif %}
+});
+
+function toggleLike(productId) {
+    fetch('/like_product/' + productId)
+        .then(response => response.json())
+        .then(data => {
+            const likeBtn = document.getElementById('likeBtn');
+            const likesCount = document.getElementById('likesCount');
+            
+            if (data.liked) {
+                likeBtn.classList.remove('btn-outline-danger');
+                likeBtn.classList.add('btn-danger');
+            } else {
+                likeBtn.classList.remove('btn-danger');
+                likeBtn.classList.add('btn-outline-danger');
+            }
+            
+            likesCount.textContent = data.likes_count;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+</script>
+{% endblock %}

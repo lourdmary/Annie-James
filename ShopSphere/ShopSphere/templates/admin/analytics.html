@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Admin{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-bar"></i> Analytics Dashboard</h2>
+        <div class="d-flex gap-2">
+            <select class="form-select" onchange="updatePeriod(this.value)">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last year</option>
+            </select>
+            <button class="btn btn-outline-primary" onclick="exportData()">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-rupee-sign fa-2x text-success mb-2"></i>
+                    <h4 class="text-success">₹45,230</h4>
+                    <p class="mb-0">Total Revenue</p>
+                    <small class="text-success">+12% from last month</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-shopping-cart fa-2x text-primary mb-2"></i>
+                    <h4 class="text-primary">156</h4>
+                    <p class="mb-0">Total Orders</p>
+                    <small class="text-success">+8% from last month</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-users fa-2x text-info mb-2"></i>
+                    <h4 class="text-info">89</h4>
+                    <p class="mb-0">New Customers</p>
+                    <small class="text-success">+15% from last month</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+                    <h4 class="text-warning">₹290</h4>
+                    <p class="mb-0">Avg Order Value</p>
+                    <small class="text-danger">-3% from last month</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row 1 -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-line"></i> Daily Sales</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="salesChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-pie"></i> Category Sales</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row 2 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar"></i> Payment Methods</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="paymentChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-map-marker-alt"></i> Sales by City</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="cityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Products Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-trophy"></i> Top Selling Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Units Sold</th>
+                                    <th>Revenue</th>
+                                    <th>Profit Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge bg-warning">1</span></td>
+                                    <td>Black And White Striped Corset Fitted Shirt</td>
+                                    <td>Shirts</td>
+                                    <td>45</td>
+                                    <td>₹35,955</td>
+                                    <td><span class="text-success">65%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-secondary">2</span></td>
+                                    <td>High Waist Pleated Trousers In Black</td>
+                                    <td>Trousers</td>
+                                    <td>38</td>
+                                    <td>₹37,962</td>
+                                    <td><span class="text-success">70%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-warning">3</span></td>
+                                    <td>Black Kitten Heels Pumps</td>
+                                    <td>Footwear</td>
+                                    <td>32</td>
+                                    <td>₹32,608</td>
+                                    <td><span class="text-success">55%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-light text-dark">4</span></td>
+                                    <td>V-neck Solid Button Vest & Mid Rise Pocket Wide Leg Trousers In Black</td>
+                                    <td>Combos</td>
+                                    <td>28</td>
+                                    <td>₹37,772</td>
+                                    <td><span class="text-success">60%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-light text-dark">5</span></td>
+                                    <td>Collar Solid Button Long Sleeve White Shirt</td>
+                                    <td>Shirts</td>
+                                    <td>25</td>
+                                    <td>₹26,200</td>
+                                    <td><span class="text-success">58%</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Profit/Loss Analysis -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-calculator"></i> Profit/Loss Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-success">₹28,750</h4>
+                                <p class="mb-0">Total Profit</p>
+                                <small class="text-muted">This month</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-primary">63.5%</h4>
+                                <p class="mb-0">Profit Margin</p>
+                                <small class="text-muted">Average</small>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="mb-1"><strong>Revenue:</strong> ₹45,230</p>
+                            <p class="mb-1"><strong>COGS:</strong> ₹16,480</p>
+                            <p class="mb-1"><strong>Operating Expenses:</strong> ₹8,200</p>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-1"><strong>Shipping:</strong> ₹2,400</p>
+                            <p class="mb-1"><strong>Returns:</strong> ₹850</p>
+                            <p class="mb-1"><strong>Discounts:</strong> ₹3,780</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-users-cog"></i> Customer Insights</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-info">2.3</h4>
+                                <p class="mb-0">Avg Orders per Customer</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-warning">25%</h4>
+                                <p class="mb-0">Repeat Customer Rate</p>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>Membership Distribution</h6>
+                    <div class="progress mb-2">
+                        <div class="progress-bar" role="progressbar" style="width: 60%">Bronze (60%)</div>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 25%">Silver (25%)</div>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: 12%">Gold (12%)</div>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: 3%">Platinum (3%)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Daily Sales Chart
+const salesCtx = document.getElementById('salesChart').getContext('2d');
+new Chart(salesCtx, {
+    type: 'line',
+    data: {
+        labels: {% if daily_sales %}{{ daily_sales|map(attribute=0)|list|tojson }}{% else %}['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-04', '2024-01-05', '2024-01-06', '2024-01-07']{% endif %},
+        datasets: [{
+            label: 'Daily Sales (₹)',
+            data: {% if daily_sales %}{{ daily_sales|map(attribute=1)|list|tojson }}{% else %}[1200, 1800, 1500, 2200, 1900, 2500, 2100]{% endif %},
+            borderColor: 'var(--bs-primary)',
+            backgroundColor: 'var(--bs-primary)',
+            tension: 0.1,
+            fill: false
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: {
+                    color: 'var(--bs-body-color)'
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: 'var(--bs-body-color)'
+                },
+                grid: {
+                    color: 'var(--bs-border-color)'
+                }
+            },
+            x: {
+                ticks: {
+                    color: 'var(--bs-body-color)'
+                },
+                grid: {
+                    color: 'var(--bs-border-color)'
+                }
+            }
+        }
+    }
+});
+
+// Category Sales Chart
+const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+new Chart(categoryCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {% if category_sales %}{{ category_sales|map(attribute=0)|list|tojson }}{% else %}['Shirts', 'Trousers', 'Footwear', 'Combos']{% endif %},
+        datasets: [{
+            data: {% if category_sales %}{{ category_sales|map(attribute=1)|list|tojson }}{% else %}[15000, 12000, 8000, 10000]{% endif %},
+            backgroundColor: [
+                'var(--bs-primary)',
+                'var(--bs-success)',
+                'var(--bs-warning)',
+                'var(--bs-info)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                labels: {
+                    color: 'var(--bs-body-color)'
+                }
+            }
+        }
+    }
+});
+
+// Payment Methods Chart
+const paymentCtx = document.getElementById('paymentChart').getContext('2d');
+new Chart(paymentCtx, {
+    type: 'bar',
+    data: {
+        labels: ['UPI', 'COD'],
+        datasets: [{
+            label: 'Number of Orders',
+            data: [98, 58],
+            backgroundColor: ['var(--bs-success)', 'var(--bs-warning)']
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                labels: {
+                    color: 'var(--bs-body-color)'
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: 'var(--bs-body-color)'
+                },
+                grid: {
+                    color: 'var(--bs-border-color)'
+                }
+            },
+            x: {
+                ticks: {
+                    color: 'var(--bs-body-color)'
+                },
+                grid: {
+                    color: 'var(--bs-border-color)'
+                }
+            }
+        }
+    }
+});
+
+// Sales by City Chart
+const cityCtx = document.getElementById('cityChart').getContext('2d');
+new Chart(cityCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Bangalore', 'Mumbai', 'Chennai', 'Delhi', 'Other'],
+        datasets: [{
+            label: 'Sales (₹)',
+            data: [18500, 15200, 8900, 2630, 1200],
+            backgroundColor: 'var(--bs-info)'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                labels: {
+                    color: 'var(--bs-body-color)'
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: 'var(--bs-body-color)'
+                },
+                grid: {
+                    color: 'var(--bs-border-color)'
+                }
+            },
+            x: {
+                ticks: {
+                    color: 'var(--bs-body-color)'
+                },
+                grid: {
+                    color: 'var(--bs-border-color)'
+                }
+            }
+        }
+    }
+});
+
+function updatePeriod(days) {
+    alert('Analytics would be updated for the last ' + days + ' days');
+    // In a real application, this would reload the data
+}
+
+function exportData() {
+    alert('Analytics data would be exported to CSV/Excel format');
+}
+</script>
+{% endblock %}
